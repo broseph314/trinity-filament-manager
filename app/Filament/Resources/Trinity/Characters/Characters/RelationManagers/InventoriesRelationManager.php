@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Trinity\Characters\CharacterResource\RelationManagers;
 
+use App\Filament\Resources\Trinity\World\ItemTemplates\ItemTemplateResource;
 use App\Models\Trinity\World\ItemTemplate;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
@@ -68,7 +69,9 @@ class InventoriesRelationManager extends RelationManager
                         },
                         isIndividual: true,   // allow the column’s own search input (if enabled)
                         isGlobal: true        // include it in the table’s global search box
-                    ),
+                    )
+                    ->url(fn ($record) => ItemTemplateResource::getUrl('view', ['record' => $record->item_entry]))
+                    ->openUrlInNewTab(),
 
                 Tables\Columns\TextColumn::make('item_entry')
                     ->label('Entry')

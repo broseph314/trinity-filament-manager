@@ -46,14 +46,15 @@ class CharacterResource extends Resource
             InventoriesRelationManager::class,
         ];
     }
+    public static function canCreate(): bool { return false; }
+    public static function canEdit($record): bool { return false; }
+    public static function canDelete($record): bool { return false; }
 
     public static function getPages(): array
     {
         return [
             'index' => ListCharacters::route('/'),
-            'create' => CreateCharacter::route('/create'),
             'view' => ViewCharacter::route('/{record}'),
-            'edit' => EditCharacter::route('/{record}/edit'),
         ];
     }
 }
