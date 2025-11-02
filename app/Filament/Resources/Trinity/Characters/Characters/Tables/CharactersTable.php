@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\Trinity\Characters\Characters\Tables;
 
 use App\Filament\Resources\Trinity\Auth\Accounts\AccountResource;
+use App\Filament\Resources\Trinity\Auth\Accounts\Pages\CreateAccount;
+use App\Filament\Resources\Trinity\Characters\Characters\Pages\CreateCharacter;
 use Filament\Actions\ViewAction;
 use Filament\Schemas\Components\Actions;
 use Filament\Tables;

@@ -20,7 +20,7 @@ class AccountResource extends Resource
 {
     protected static ?string $model = Account::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::User;
 
     protected static ?string $recordTitleAttribute = 'username';
 
@@ -45,6 +45,11 @@ class AccountResource extends Resource
             RelationManagers\CharactersRelationManager::class,
         ];
     }
+
+    public static function canCreate(): bool { return false; }
+    public static function canEdit($record): bool { return false; }
+    public static function canDelete($record): bool { return false; }
+
 
     public static function getPages(): array
     {

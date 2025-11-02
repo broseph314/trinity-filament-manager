@@ -5,6 +5,8 @@ namespace App\Filament\Resources\Trinity\World\ItemTemplates\Schemas;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
 
 class ItemTemplateInfolist
@@ -12,178 +14,237 @@ class ItemTemplateInfolist
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
+            Tabs::make('ItemTabs')
+                ->persistTabInQueryString() // deep-linkable (optional)
+                ->tabs([
+                    // --- Overview (always shown) ---
+                    Tab::make('Overview')
+                        ->schema([
+                            Section::make('Summary')
+                                ->columns(5)
+                                ->schema([
+                                    TextEntry::make('summary_type')
+                                        ->label('Type')
+                                        ->badge()
+                                        ->state(fn ($record) => sprintf(
+                                            '%s · %s',
+                                            self::classesMap()[$record->class] ?? $record->class,
+                                            self::inventoryTypesMap()[$record->InventoryType] ?? $record->InventoryType
+                                        )),
 
-            Section::make('Item')
-                ->columns(3)
-                ->schema([
-                    TextEntry::make('entry')
-                        ->label('Entry')
-                        ->copyable(),
+                                    TextEntry::make('summary_quality')
+                                        ->label('Quality')
+                                        ->badge()
+                                        ->state(fn ($record) => match ((int) $record->quality) {
+                                            0=>'Poor',1=>'Common',2=>'Uncommon',3=>'Rare',4=>'Epic',
+                                            5=>'Legendary',6=>'Artifact',7=>'Heirloom', default => (string) $record->quality
+                                        })
+                                        ->color(fn ($record) => self::qualityColor((int) $record->quality)),
 
-                    TextEntry::make('name')
-                        ->label('Name')
-                        ->weight('semibold')
-                        ->columnSpan(2),
+                                    TextEntry::make('summary_levels')
+                                        ->label('Levels')
+                                        ->state(fn ($record) => "Item Lv {$record->ItemLevel} · Req {$record->RequiredLevel}"),
 
-                    TextEntry::make('quality')
-                        ->label('Quality')
-                        ->badge()
-                        ->color(fn ($r) => self::qualityColor((int) $r->Quality)),
+                                    TextEntry::make('summary_price')
+                                        ->label('Vendor')
+                                        ->state(fn ($record) => 'Buy '.self::money($record->BuyPrice).' · Sell '.self::money($record->SellPrice))
+                                        ->visible(fn ($record) => (int) $record->BuyPrice > 0 || (int) $record->SellPrice > 0),
 
-                    Grid::make(3)->schema([
-                        TextEntry::make('class')
-                            ->label('Class')
-                            ->formatStateUsing(fn ($v) => self::classesMap()[$v] ?? $v),
+                                    TextEntry::make('summary_combat')
+                                        ->label('Stats')
+                                        ->state(function ($record) {
+                                            $parts = [];
+                                            if ((int) $record->Armor > 0) $parts[] = "Armor {$record->Armor}";
+                                            if ((int) $record->dmg_min1 > 0) {
+                                                $parts[] = "Damage {$record->dmg_min1}-{$record->dmg_max1}";
+                                                if ((int) $record->delay > 0) $parts[] = sprintf('Speed %.2fs', $record->delay / 1000);
+                                            }
+                                            return $parts ? implode(' · ', $parts) : '—';
+                                        })
+                                        ->visible(fn ($record) => (int) $record->Armor > 0 || (int) $record->dmg_min1 > 0),
+                                ]),
 
-                        TextEntry::make('subclass')
-                            ->label('Subclass')
-                            ->formatStateUsing(fn ($v, $record) =>
-                            isset($record->class)
-                                ? (self::subclassesMap()[(int) $record->class][$v] ?? $v)
-                                : $v
-                            ),
+                            Section::make('Item')
+                                ->columns(3)
+                                ->schema([
+                                    TextEntry::make('entry')->label('Entry')->copyable(),
+                                    TextEntry::make('name')->label('Name')->weight('semibold')->columnSpan(2),
+                                    TextEntry::make('quality')
+                                        ->label('Quality')
+                                        ->badge()
+                                        ->color(fn ($record) => self::qualityColor((int) $record->quality)),
+                                    Grid::make(3)->schema([
+                                        TextEntry::make('class')
+                                            ->label('Class')
+                                            ->formatStateUsing(fn ($v) => self::classesMap()[$v] ?? $v),
 
-                        TextEntry::make('InventoryType')
-                            ->label('Inv. Type')
-                            ->formatStateUsing(fn ($v) => self::inventoryTypesMap()[$v] ?? $v),
-                    ]),
+                                        TextEntry::make('subclass')
+                                            ->label('Subclass')
+                                            ->formatStateUsing(fn ($v, $record) =>
+                                            isset($record->class) ? (self::subclassesMap()[(int) $record->class][$v] ?? $v) : $v
+                                            ),
+
+                                        TextEntry::make('InventoryType')
+                                            ->label('Inv. Type')
+                                            ->formatStateUsing(fn ($v) => self::inventoryTypesMap()[$v] ?? $v),
+                                    ]),
+                                ]),
+
+                            Section::make('Economy')
+                                ->columns(5)
+                                ->schema([
+                                    TextEntry::make('BuyCount')->label('Vendor Stack')->numeric(),
+                                    TextEntry::make('BuyPrice')->label('Buy Price')->formatStateUsing(fn ($v) => self::money($v)),
+                                    TextEntry::make('SellPrice')->label('Sell Price')->formatStateUsing(fn ($v) => self::money($v)),
+                                    TextEntry::make('stackable')->label('Stack Size')->placeholder('-'),
+                                    TextEntry::make('ContainerSlots')->label('Container Slots')->placeholder('-'),
+                                ])
+                                ->visible(self::visibleIfAny(['BuyCount','BuyPrice','SellPrice','stackable','ContainerSlots'])),
+
+                        ]),
+
+                    // --- Requirements tab ---
+                    Tab::make('Requirements')
+                        ->schema([
+                            Section::make('Requirements & Levels')
+                                ->columns(4)
+                                ->schema([
+                                    TextEntry::make('ItemLevel')->label('Item Level'),
+                                    TextEntry::make('RequiredLevel')->label('Required Level'),
+                                    TextEntry::make('bonding')->label('Bonding')->badge()->color('gray'),
+                                    TextEntry::make('MaxDurability')->label('Max Durability')->placeholder('-'),
+                                    TextEntry::make('AllowableClass')->label('Allowed Classes (mask)')->placeholder('-'),
+                                    TextEntry::make('AllowableRace')->label('Allowed Races (mask)')->placeholder('-'),
+                                    TextEntry::make('startquest')->label('Starts Quest')->placeholder('-'),
+                                    TextEntry::make('RandomProperty')->label('Random Property')->placeholder('-'),
+                                ])
+                                ->visible(self::visibleIfAny([
+                                    'ItemLevel','RequiredLevel','bonding','MaxDurability',
+                                    'AllowableClass','AllowableRace','startquest','RandomProperty',
+                                ])),
+                        ])
+                        ->visible(self::visibleIfAny([
+                            'ItemLevel','RequiredLevel','bonding','MaxDurability',
+                            'AllowableClass','AllowableRace','startquest','RandomProperty',
+                        ])),
+
+                    // --- Combat tab (weapons/armor) ---
+                    Tab::make('Combat')
+                        ->schema([
+                            Section::make('Weapon / Armor Stats')
+                                ->columns(6)
+                                ->schema([
+                                    TextEntry::make('dmg_min1')->label('Dmg Min'),
+                                    TextEntry::make('dmg_max1')->label('Dmg Max'),
+                                    TextEntry::make('dmg_type1')->label('Dmg Type'),
+                                    TextEntry::make('delay')->label('Speed (ms)'),
+                                    TextEntry::make('Armor')->label('Armor'),
+                                    TextEntry::make('block')->label('Block'),
+
+                                    TextEntry::make('dmg_min2')->label('Dmg2 Min')
+                                        ->visible(fn ($component) => (int) ($component->getRecord()?->dmg_min2 ?? 0) > 0),
+                                    TextEntry::make('dmg_max2')->label('Dmg2 Max')
+                                        ->visible(fn ($component) => (int) ($component->getRecord()?->dmg_min2 ?? 0) > 0),
+                                    TextEntry::make('dmg_type2')->label('Dmg2 Type')
+                                        ->visible(fn ($component) => (int) ($component->getRecord()?->dmg_min2 ?? 0) > 0),
+
+                                    TextEntry::make('holy_res')->label('Holy Res'),
+                                    TextEntry::make('fire_res')->label('Fire Res'),
+                                    TextEntry::make('nature_res')->label('Nature Res'),
+                                    TextEntry::make('frost_res')->label('Frost Res'),
+                                    TextEntry::make('shadow_res')->label('Shadow Res'),
+                                    TextEntry::make('arcane_res')->label('Arcane Res'),
+                                ]),
+                        ])
+                        ->visible(fn ($component) => self::anyTruthy($component->getRecord(), [
+                            'Armor','block','delay','dmg_min1','dmg_max1','dmg_min2','dmg_max2',
+                            'holy_res','fire_res','nature_res','frost_res','shadow_res','arcane_res',
+                        ])),
+
+                    // --- Stats tab ---
+                    Tab::make('Stats')
+                        ->schema([
+                            Section::make('Stats (1–10)')
+                                ->columns(5)
+                                ->schema([...self::statRows()]),
+                        ])
+                        ->visible(fn ($component) => self::anyStatPresent($component->getRecord())),
+
+                    // --- Spells tab ---
+                    Tab::make('Spells')
+                        ->schema([
+                            Section::make('Spells')
+                                ->columns(6)
+                                ->schema([
+                                    ...self::spellRows(1),
+                                    ...self::spellRows(2),
+                                    ...self::spellRows(3),
+                                    ...self::spellRows(4),
+                                    ...self::spellRows(5),
+                                ]),
+                        ])
+                        ->visible(fn ($component) => self::anySpellPresent($component->getRecord())),
+
+                    // --- Sockets tab ---
+                    Tab::make('Sockets')
+                        ->schema([
+                            Section::make('Sockets & Gems')
+                                ->columns(6)
+                                ->schema([
+                                    TextEntry::make('socketColor_1')->label('Socket 1')
+                                        ->visible(fn (TextEntry $e) => (int) ($e->getState() ?? 0) !== 0),
+                                    TextEntry::make('socketContent_1')->label('Socket 1 Gem')
+                                        ->visible(fn (TextEntry $e) => (int) ($e->getState() ?? 0) !== 0),
+
+                                    TextEntry::make('socketColor_2')->label('Socket 2')
+                                        ->visible(fn (TextEntry $e) => (int) ($e->getState() ?? 0) !== 0),
+                                    TextEntry::make('socketContent_2')->label('Socket 2 Gem')
+                                        ->visible(fn (TextEntry $e) => (int) ($e->getState() ?? 0) !== 0),
+
+                                    TextEntry::make('socketColor_3')->label('Socket 3')
+                                        ->visible(fn (TextEntry $e) => (int) ($e->getState() ?? 0) !== 0),
+                                    TextEntry::make('socketContent_3')->label('Socket 3 Gem')
+                                        ->visible(fn (TextEntry $e) => (int) ($e->getState() ?? 0) !== 0),
+
+                                    TextEntry::make('socketBonus')->label('Socket Bonus')->placeholder('-'),
+                                    TextEntry::make('GemProperties')->label('Gem Properties')->placeholder('-'),
+                                ]),
+                        ])
+                        ->visible(fn ($component) => self::anyTruthy($component->getRecord(), [
+                            'socketColor_1','socketContent_1','socketColor_2','socketContent_2',
+                            'socketColor_3','socketContent_3','socketBonus','GemProperties',
+                        ])),
+
+                    // --- Extras tab ---
+                    Tab::make('Extras')
+                        ->schema([
+                            Section::make('Extras')
+                                ->columns(3)
+                                ->schema([
+                                    TextEntry::make('PageText')->label('Page Text')->placeholder('-'),
+                                    TextEntry::make('LanguageID')->label('Language')->placeholder('-'),
+                                    TextEntry::make('PageMaterial')->label('Page Material')->placeholder('-'),
+                                    TextEntry::make('sheath')->label('Sheath')->placeholder('-'),
+                                    TextEntry::make('ScriptName')->label('Script Name')->placeholder('-'),
+                                    TextEntry::make('VerifiedBuild')->label('Verified Build')->placeholder('-'),
+                                    TextEntry::make('flagsCustom')->label('Flags (Custom)')->placeholder('-'),
+                                    TextEntry::make('Flags')->label('Flags')->placeholder('-'),
+                                    TextEntry::make('FlagsExtra')->label('Flags Extra')->placeholder('-'),
+                                    TextEntry::make('DisenchantID')->label('Disenchant ID')->placeholder('-'),
+                                    TextEntry::make('RequiredDisenchantSkill')->label('Req. Disenchant Skill')->placeholder('-'),
+                                    TextEntry::make('FoodType')->label('Food Type')->placeholder('-'),
+                                    TextEntry::make('minMoneyLoot')->label('Min Money Loot')->formatStateUsing(fn ($v) => self::money($v))->placeholder('-'),
+                                    TextEntry::make('maxMoneyLoot')->label('Max Money Loot')->formatStateUsing(fn ($v) => self::money($v))->placeholder('-'),
+                                ]),
+                        ])
+                        ->visible(self::visibleIfAny([
+                            'PageText','LanguageID','PageMaterial','sheath','ScriptName','VerifiedBuild',
+                            'flagsCustom','Flags','FlagsExtra','DisenchantID','RequiredDisenchantSkill',
+                            'FoodType','minMoneyLoot','maxMoneyLoot',
+                        ])),
                 ]),
-
-            Section::make('Requirements & Levels')
-                ->columns(4)
-                ->schema([
-                    TextEntry::make('ItemLevel')->label('Item Level'),
-                    TextEntry::make('RequiredLevel')->label('Required Level'),
-                    TextEntry::make('bonding')->label('Bonding')->badge()->color('gray'),
-                    TextEntry::make('MaxDurability')->label('Max Durability')->placeholder('-'),
-                    TextEntry::make('AllowableClass')->label('Allowed Classes (mask)')->placeholder('-'),
-                    TextEntry::make('AllowableRace')->label('Allowed Races (mask)')->placeholder('-'),
-                    TextEntry::make('startquest')->label('Starts Quest')->placeholder('-'),
-                    TextEntry::make('RandomProperty')->label('Random Property')->placeholder('-'),
-                ]),
-
-            Section::make('Economy')
-                ->columns(5)
-                ->schema([
-                    TextEntry::make('BuyCount')->label('Vendor Stack')->numeric(),
-                    TextEntry::make('BuyPrice')->label('Buy Price')->formatStateUsing(fn ($v) => self::money($v)),
-                    TextEntry::make('SellPrice')->label('Sell Price')->formatStateUsing(fn ($v) => self::money($v)),
-                    TextEntry::make('stackable')->label('Stack Size')->placeholder('-'),
-                    TextEntry::make('ContainerSlots')->label('Container Slots')->placeholder('-'),
-                ]),
-
-            Section::make('Weapon / Armor Stats')
-                ->columns(6)
-                ->collapsed()
-                ->schema([
-                    TextEntry::make('dmg_min1')->label('Dmg Min'),
-                    TextEntry::make('dmg_max1')->label('Dmg Max'),
-                    TextEntry::make('dmg_type1')->label('Dmg Type'),
-                    TextEntry::make('delay')->label('Speed (ms)'),
-                    TextEntry::make('Armor')->label('Armor'),
-                    TextEntry::make('block')->label('Block'),
-
-                    TextEntry::make('dmg_min2')
-                        ->label('Dmg2 Min')
-                        ->visible(fn ($component) =>
-                            (int) $component->getRecord()?->dmg_min2 > 0
-                        ),
-
-                    TextEntry::make('dmg_max2')
-                        ->label('Dmg2 Max')
-                        ->visible(fn ($component) =>
-                            (int) $component->getRecord()?->dmg_min2 > 0
-                        ),
-
-                    TextEntry::make('dmg_type2')
-                        ->label('Dmg2 Type')
-                        ->visible(fn ($component) =>
-                            (int) $component->getRecord()?->dmg_min2 > 0
-                        ),
-
-                    TextEntry::make('holy_res')->label('Holy Res'),
-                    TextEntry::make('fire_res')->label('Fire Res'),
-                    TextEntry::make('nature_res')->label('Nature Res'),
-                    TextEntry::make('frost_res')->label('Frost Res'),
-                    TextEntry::make('shadow_res')->label('Shadow Res'),
-                    TextEntry::make('arcane_res')->label('Arcane Res'),
-                ]),
-
-            Section::make('Stats (1–10)')
-                ->columns(5)
-                ->collapsed()
-                ->schema([
-                    ...self::statRows(),
-                ]),
-
-            Section::make('Spells')
-                ->columns(6)
-                ->collapsed()
-                ->schema([
-                    ...self::spellRows(1),
-                    ...self::spellRows(2),
-                    ...self::spellRows(3),
-                    ...self::spellRows(4),
-                    ...self::spellRows(5),
-                ]),
-
-            Section::make('Sockets & Gems')
-                ->columns(6)
-                ->collapsed()
-                ->schema([
-                    TextEntry::make('socketColor_1')
-                        ->label('Socket 1')
-                        ->visible(fn (TextEntry $e) => (int) ($e->getState() ?? 0) !== 0),
-
-                    TextEntry::make('socketContent_1')
-                        ->label('Socket 1 Gem')
-                        ->visible(fn (TextEntry $e) => (int) ($e->getState() ?? 0) !== 0),
-
-                    TextEntry::make('socketColor_2')
-                        ->label('Socket 2')
-                        ->visible(fn (TextEntry $e) => (int) ($e->getState() ?? 0) !== 0),
-
-                    TextEntry::make('socketContent_2')
-                        ->label('Socket 2 Gem')
-                        ->visible(fn (TextEntry $e) => (int) ($e->getState() ?? 0) !== 0),
-
-                    TextEntry::make('socketColor_3')
-                        ->label('Socket 3')
-                        ->visible(fn (TextEntry $e) => (int) ($e->getState() ?? 0) !== 0),
-
-                    TextEntry::make('socketContent_3')
-                        ->label('Socket 3 Gem')
-                        ->visible(fn (TextEntry $e) => (int) ($e->getState() ?? 0) !== 0),
-
-                    TextEntry::make('socketBonus')
-                        ->label('Socket Bonus')
-                        ->placeholder('-'),
-
-                    TextEntry::make('GemProperties')
-                        ->label('Gem Properties')
-                        ->placeholder('-'),
-                ]),
-
-            Section::make('Extras')
-                ->columns(3)
-                ->collapsed()
-                ->schema([
-                    TextEntry::make('PageText')->label('Page Text')->placeholder('-'),
-                    TextEntry::make('LanguageID')->label('Language')->placeholder('-'),
-                    TextEntry::make('PageMaterial')->label('Page Material')->placeholder('-'),
-                    TextEntry::make('sheath')->label('Sheath')->placeholder('-'),
-                    TextEntry::make('ScriptName')->label('Script Name')->placeholder('-'),
-                    TextEntry::make('VerifiedBuild')->label('Verified Build')->placeholder('-'),
-                    TextEntry::make('flagsCustom')->label('Flags (Custom)')->placeholder('-'),
-                    TextEntry::make('Flags')->label('Flags')->placeholder('-'),
-                    TextEntry::make('FlagsExtra')->label('Flags Extra')->placeholder('-'),
-                    TextEntry::make('DisenchantID')->label('Disenchant ID')->placeholder('-'),
-                    TextEntry::make('RequiredDisenchantSkill')->label('Req. Disenchant Skill')->placeholder('-'),
-                    TextEntry::make('FoodType')->label('Food Type')->placeholder('-'),
-                    TextEntry::make('minMoneyLoot')->label('Min Money Loot')->formatStateUsing(fn ($v) => self::money($v))->placeholder('-'),
-                    TextEntry::make('maxMoneyLoot')->label('Max Money Loot')->formatStateUsing(fn ($v) => self::money($v))->placeholder('-'),
-                ]),
-        ]);
+        ])
+            ->columns(1);
     }
 
     // ---------------- helpers ----------------
@@ -373,6 +434,49 @@ class ItemTemplateInfolist
             2 => 'Chance on Hit',
             4 => 'Soulstone',
         ];
+    }
+
+    private static function visibleIfAny(array $fields): \Closure
+    {
+        return fn ($component) => self::anyTruthy($component->getRecord(), $fields);
+    }
+
+    /** Returns true if the record has any non-empty value across fields */
+    private static function anyTruthy($record, array $fields): bool
+    {
+        if (!$record) return false;
+        foreach ($fields as $f) {
+            // Consider 0 and '0' as empty for our purposes here; tweak if needed:
+            $v = $record->{$f} ?? null;
+            if ($v !== null && $v !== '' && $v !== 0 && $v !== '0') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Any stat_type# > 0 ? */
+    private static function anyStatPresent($record): bool
+    {
+        if (!$record) return false;
+        for ($i = 1; $i <= 10; $i++) {
+            if ((int)($record->{"stat_type{$i}"} ?? 0) > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Any spellid_N > 0 ? */
+    private static function anySpellPresent($record): bool
+    {
+        if (!$record) return false;
+        for ($n = 1; $n <= 5; $n++) {
+            if ((int)($record->{"spellid_{$n}"} ?? 0) > 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

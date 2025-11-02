@@ -20,7 +20,9 @@ class ItemTemplateResource extends Resource
 {
     protected static ?string $model = ItemTemplate::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static ?string $label = "Item Listing";
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::ArchiveBox;
 
     protected static ?string $recordTitleAttribute = 'name';
 
