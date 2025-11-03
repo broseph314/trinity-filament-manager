@@ -1,0 +1,10 @@
+@import "tailwindcss";
+@import "../../../../vendor/filament/filament/resources/css/theme.css";
+/* Tell Tailwind v4 where to look for classes */
+@source "../../views/**/*.blade.php";
+@source "../../../vendor/filament/**/*.blade.php";
+
+
+
+/* Optional custom utilities */
+.tw-test { outline: 2px dashed red; }

@@ -30,9 +30,10 @@ class WorldConsole extends Page implements HasForms
     private const WHITELIST = [
         'server info',
         'help',
-        'uptime',
-         'account onlinelist',  // add as needed
-         'server motd',         // read-only
+        'help list',
+        'pinfo Joland',
+        'account onlinelist',  // add as needed
+        'server motd',         // read-only
     ];
 
     public function mount(): void
@@ -65,7 +66,8 @@ class WorldConsole extends Page implements HasForms
         try {
             /** @var CommandService $svc */
             $svc = app(CommandService::class);
-            $this->output = $svc->run($cmd);
+            $raw = $svc->run($cmd);              // whatever you currently return (raw SOAP body or string)
+            $this->output = $this->sanitize($raw); // make it human-friendly
         } catch (\Throwable $e) {
             $this->output = 'Error: ' . $e->getMessage();
         }
@@ -99,6 +101,38 @@ class WorldConsole extends Page implements HasForms
     protected function authorizeAccess(): void
     {
         // $this->authorize('manage-trinity'); // uncomment if you have a Gate/Policy
+    }
+
+    private function sanitize(string $raw): string
+    {
+        // 1) strip prolog & envelope-ish tags
+        $s = preg_replace('/<\?xml[^>]*\?>/i', '', $raw);
+        $s = preg_replace('/<\/?(?:SOAP-ENV|soap|s|env|Envelope|Body|Header|ns1|m)(?::[^>]*)?>/i', '', $s);
+
+        // 2) reduce to inner text if a <result>…</result> exists
+        if (preg_match('/<result[^>]*>(.*?)<\/result>/is', (string) $s, $m)) {
+            $s = $m[1];
+        }
+
+        // 3) strip remaining tags (Trinity typically returns plaintext inside <result>)
+        $s = strip_tags((string) $s);
+
+        // 4) decode entities like &#xD; &#13; &nbsp; etc.
+        $s = html_entity_decode($s, ENT_QUOTES | ENT_XML1, 'UTF-8');
+
+        // normalize non-breaking space
+        $s = str_replace("\xC2\xA0", ' ', $s);
+
+        // 5) remove control chars except \n and \t
+        $s = preg_replace('/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/', '', $s);
+
+        // 6) normalize line endings & collapse excessive whitespace
+        $s = preg_replace("/\r\n?/", "\n", $s);
+        $s = preg_replace("/[ \t]+/", ' ', $s);
+        $s = preg_replace("/\n{3,}/", "\n\n", $s);
+
+        // final trim
+        return trim($s);
     }
 
     public function parsedPairs(): ?array
