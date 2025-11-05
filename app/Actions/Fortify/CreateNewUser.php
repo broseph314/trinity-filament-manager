@@ -3,6 +3,8 @@
 namespace App\Actions\Fortify;
 
 use App\Models\User;
+use App\Services\Trinity\AccountProvisioner;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
@@ -18,22 +20,49 @@ class CreateNewUser implements CreatesNewUsers
      */
     public function create(array $input): User
     {
-        Validator::make($input, [
-            'name' => ['required', 'string', 'max:255'],
-            'email' => [
-                'required',
-                'string',
-                'email',
-                'max:255',
-                Rule::unique(User::class),
-            ],
-            'password' => $this->passwordRules(),
-        ])->validate();
 
-        return User::create([
-            'name' => $input['name'],
-            'email' => $input['email'],
-            'password' => $input['password'],
-        ]);
+        $user = null;
+        try {
+            Validator::make($input, [
+                'name' => [
+                    'required',
+                    'string',
+                    'max:32',
+                    'regex:/^[A-Za-z0-9]+$/',  // only letters & numbers
+                    'unique:users,name',        // optional: if usernames must be unique
+                ],
+                'email' => [
+                    'required',
+                    'string',
+                    'email',
+                    'max:255',
+                    Rule::unique(User::class),
+                ],
+                'password' => $this->passwordRules(),
+            ])->validate();
+
+            $user = User::create([
+                'name' => $input['name'],
+                'email' => strtolower($input['email']),
+                'password' => Hash::make($input['password']),
+            ]);
+
+            // Immediately mirror to Trinity — do NOT queue (avoid serializing plaintext)
+            app(AccountProvisioner::class)->provisionWithPassword(
+                $user,
+                username: $user->name,
+                plainPassword: $input['password'],
+            );
+
+        } catch(\Throwable $e) {
+            // Rollback user creation on any failure
+            if($user)
+            {
+                $user->delete();
+            }
+            throw $e;
+        }
+
+        return $user;
     }
 }
