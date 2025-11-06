@@ -61,4 +61,21 @@ class User extends Authenticatable
             ->map(fn ($word) => Str::substr($word, 0, 1))
             ->implode('');
     }
+
+    public function trinityLink()
+    {
+        return $this->hasOne(TrinityLink::class);
+    }
+
+    // Convenience: nullable ID & username (cached via relation if loaded)
+    public function getTrinityAccountIdAttribute(): ?int
+    {
+        return $this->trinityLink?->trinity_account_id;
+    }
+
+    public function getTrinityUsernameAttribute(): ?string
+    {
+        return $this->trinityLink?->trinity_username;
+    }
+
 }
