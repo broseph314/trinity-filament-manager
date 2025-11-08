@@ -3,16 +3,21 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\Trinity\Characters\Character;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use Spatie\Permission\Traits\HasPermissions;
+use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable
+class User extends Authenticatable  implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, TwoFactorAuthenticatable;
+    use HasFactory, Notifiable, TwoFactorAuthenticatable, HasRoles, HasPermissions;
 
     /**
      * The attributes that are mass assignable.
@@ -73,9 +78,18 @@ class User extends Authenticatable
         return $this->trinityLink?->trinity_account_id;
     }
 
+    public function characters()
+    {
+        return $this->hasMany(Character::class, 'account', 'trinity_account_id');
+    }
+
     public function getTrinityUsernameAttribute(): ?string
     {
         return $this->trinityLink?->trinity_username;
     }
 
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return true;
+    }
 }

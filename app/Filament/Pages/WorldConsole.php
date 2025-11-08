@@ -33,8 +33,22 @@ class WorldConsole extends Page implements HasForms
         'help list',
         'pinfo Joland',
         'account onlinelist',  // add as needed
-        'server motd',         // read-only
+        'server motd',
+        'tele name Gayestmajor ColdridgeValley',// read-only
+        'tele name Gayestmajor Stormwind',
+        'lookup tele coldridge',
+        'send money Gayestmajor "foot pics" "hi" 999'
     ];
+
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->hasAnyRole(['gm','admin']) ?? false;
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canAccess();
+    }
 
     public function mount(): void
     {

@@ -13,12 +13,23 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
+use Illuminate\Database\Eloquent\Builder;
 
 class CharactersTable
 {
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(function (Builder $query) {
+                $user = auth()->user();
+
+                // Only show own characters unless they have full view rights
+                if (! $user->can('characters.view.any')) {
+                    $query->where('account', $user->trinity_account_id);
+                }
+
+                return $query;
+            })
             ->columns([
                 TextColumn::make('guid')
                     ->label('GUID')

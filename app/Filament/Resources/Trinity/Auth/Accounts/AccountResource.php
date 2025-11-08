@@ -24,6 +24,16 @@ class AccountResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'username';
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()?->hasRole('admin') ?? false;
+    }
+
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasAnyPermission(['characters.view.own','characters.view.any']) ?? false;
+    }
+
     public static function form(Schema $schema): Schema
     {
         return AccountForm::configure($schema);

@@ -15,7 +15,6 @@ class EditItemTemplate extends EditRecord
     {
         return [
             ViewAction::make(),
-            DeleteAction::make(),
         ];
     }
 }

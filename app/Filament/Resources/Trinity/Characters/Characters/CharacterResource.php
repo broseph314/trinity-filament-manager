@@ -12,10 +12,12 @@ use App\Filament\Resources\Trinity\Characters\Characters\Schemas\CharacterInfoli
 use App\Filament\Resources\Trinity\Characters\Characters\Tables\CharactersTable;
 use App\Models\Trinity\Characters\Character;
 use BackedEnum;
+use Filament\Forms\Components\Builder;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class CharacterResource extends Resource
 {
@@ -49,6 +51,30 @@ class CharacterResource extends Resource
     public static function canCreate(): bool { return false; }
     public static function canEdit($record): bool { return false; }
     public static function canDelete($record): bool { return false; }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()?->hasAnyPermission(['characters.view.own','characters.view.any']) ?? false;
+    }
+
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasAnyPermission(['characters.view.any','characters.view.own']) ?? false;
+    }
+
+    public static function canView(Model $record): bool
+    {
+
+        if(auth()->user()?->hasPermissionTo('characters.view.any')) {
+            return true;
+        }
+
+        if (auth()->user()?->hasPermissionTo('characters.view.own')) {
+            return $record->account_id === auth()->user()->trinityLink?->trinity_account_id;
+        }
+
+        return false;
+    }
 
     public static function getPages(): array
     {
