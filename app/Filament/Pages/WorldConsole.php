@@ -28,16 +28,51 @@ class WorldConsole extends Page implements HasForms
 
     /** Keep this tight and safe. Extend as you gain confidence. */
     private const WHITELIST = [
+        'revive bamuel',
+        'tele name bamuel Stormwind',
+        'tele name bamuel Gnomeregan',
+        'repairitems bamuel',
+        'send money bamuel "Grats" "Have fun with dual-spec" 10000000',
         'server info',
-        'help',
-        'help list',
+        'help ',
+        'character level smella 20',
+        'lookup tele tink',
+        'tele name bamuel Stormwind',
+        'tele name jub Stormwind',
+        'tele name Fannychmela Stormwind',
+        'tele name smella Stormwind',
+        'tele name gothmog Stormwind',
+        'repairitems fannychmela',
         'pinfo Joland',
         'account onlinelist',  // add as needed
         'server motd',
-        'tele name Gayestmajor ColdridgeValley',// read-only
-        'tele name Gayestmajor Stormwind',
-        'lookup tele coldridge',
-        'send money Gayestmajor "foot pics" "hi" 999'
+        'help account additem',
+        'revive smella',
+        'revive Fannychmela',
+        'revive bamuel',
+        'revive saurontwo',
+        'revive gothmog',
+        'revive jub',
+        'send money smella "FEETPICS" "PLEASEPLEASEPLEASEPLEASE" 500000',
+        'send money jub "FEETPICS" "PLEASEPLEASEPLEASEPLEASE" 500000',
+        'send money saurontwo "FEETPICS" "PLEASEPLEASEPLEASEPLEASE" 500000',
+        'send money gothmog "FEETPICS" "PLEASEPLEASEPLEASEPLEASE" 500000',
+        'send money bamuel "FEETPICS" "PLEASEPLEASEPLEASEPLEASE" 500000',
+        'send money saurontwo "FEETPICS" "PLEASEPLEASEPLEASEPLEASE" 500000',
+        'send money Fannychmela "FEETPICS" "PLEASEPLEASEPLEASEPLEASE" 500000',
+        'send money tranquilos "FEETPICS" "PLEASEPLEASEPLEASEPLEASE" 500000',
+        'send money Halfarf "FEETPICS" "PLEASEPLEASEPLEASEPLEASE" 500000',
+        'send items bamuel "FEETPICS" "PLEASEPLEASEPLEASEPLEASE" 6037:1',
+        'help account delete',
+//        'account delete jackizen',
+        'tele name jub Stormwind',// read-only
+        'tele name bamuel Stormwind',
+        'tele name saurontwo Stormwind',
+        'tele name gothmog Stormwind',
+        'tele name Fannychmela Stormwind',
+//        'tele name Gayestmajor Stormwind',
+//        'lookup tele anvil',
+//        'send money Gayestmajor "foot pics" "hi" 999'
     ];
 
     public static function canAccess(): bool
