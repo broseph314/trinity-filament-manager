@@ -56,7 +56,7 @@ class RequestResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return RequestsTable::configure($table);
+        return RequestsTable::configure($table)->defaultSort('created_at', 'desc');
     }
 
     public static function getRelations(): array

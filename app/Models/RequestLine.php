@@ -54,4 +54,21 @@ class RequestLine extends Model
             'attempts' => $this->attempts + 1,
         ]);
     }
+
+    public function moneyParts(): array
+    {
+        $c = (int) (($this->params['copper'] ?? 0));
+        $g = intdiv($c, 10000);
+        $s = intdiv($c % 10000, 100);
+        $k = $c % 100;
+        return compact('g','s','k');
+    }
+
+    public function itemLabel(): string
+    {
+        // prefer the denormalized label you saved when creating lines
+        if (!empty($this->params['label'])) return (string) $this->params['label'];
+        if (!empty($this->params['entry'])) return 'Item #'.(int)$this->params['entry'];
+        return 'Item';
+    }
 }

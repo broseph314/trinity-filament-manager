@@ -20,6 +20,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Support\Colors\Color;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Table;
 
 class LinesRelationManager extends RelationManager
@@ -52,12 +53,15 @@ class LinesRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('action')
             ->columns([
-                TextColumn::make('id')->sortable(),
+//                TextColumn::make('id')->sortable(),
                 TextColumn::make('action')->badge()->colors(['primary']),
-                TextColumn::make('params')
-                    ->formatStateUsing(fn ($state) => json_encode($state, JSON_UNESCAPED_UNICODE))
-                    ->tooltip(fn ($state) => json_encode($state, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE))
-                    ->limit(60),
+                ViewColumn::make('pretty')
+                    ->label('Details')
+                    ->view('filament.tables.columns.pretty-request-details'),
+//                TextColumn::make('params')
+//                    ->formatStateUsing(fn ($state) => json_encode($state, JSON_UNESCAPED_UNICODE))
+//                    ->tooltip(fn ($state) => json_encode($state, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE))
+//                    ->limit(60), // this is just for viewing raw json stuff - ignore
                 TextColumn::make('status')
                     ->colors([
                         'warning' => 'pending',
@@ -67,10 +71,10 @@ class LinesRelationManager extends RelationManager
                     ])
                     ->badge()
                     ->sortable(),
-                TextColumn::make('attempts')->sortable(),
-                TextColumn::make('error_text')->limit(60)->toggleable(),
-                TextColumn::make('processed_at')->dateTime()->since()->sortable(),
-                TextColumn::make('created_at')->dateTime()->since()->sortable(),
+                TextColumn::make('attempts')->sortable()->toggleable(true,true),
+                TextColumn::make('error_text')->limit(60)->toggleable(true,true),
+                TextColumn::make('processed_at')->dateTime()->toggleable(true,true)->since()->sortable(),
+                TextColumn::make('created_at')->dateTime()->since()->toggleable(true,true)->sortable(),
             ])
             ->recordActions([
                 Action::make('retry')
@@ -91,11 +95,6 @@ class LinesRelationManager extends RelationManager
             ])
             ->headerActions([]) // no create lines from admin for now
             ->toolbarActions([
-                BulkAction::make('bulkRetry')
-                    ->label('Retry')
-                    ->icon('heroicon-o-arrow-path')
-                    ->color(Color::Indigo)
-                    ->action(fn ($records) => $records->each->update(['status'=>'pending','error_text'=>null])),
             ]);
     }
 }

@@ -41,10 +41,10 @@ class RequestsTable
                     ])
                     ->badge()
                     ->sortable(),
-                TextColumn::make('lines_count')->label('Lines')->sortable(),
-                TextColumn::make('done_lines_count')->label('Done')->sortable(),
-                TextColumn::make('error_lines_count')->label('Errors')->sortable(),
-                TextColumn::make('created_at')->dateTime()->since()->sortable(),
+                TextColumn::make('lines_count')->label('Lines')->toggleable(true,true)->sortable(),
+                TextColumn::make('done_lines_count')->label('Done')->toggleable(true,true)->sortable(),
+                TextColumn::make('error_lines_count')->label('Errors')->toggleable(true,true)->sortable(),
+                TextColumn::make('created_at')->dateTime()->since()->toggleable(true,true)->sortable(),
             ])
             ->filters([
                 SelectFilter::make('status')

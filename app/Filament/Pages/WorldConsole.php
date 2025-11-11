@@ -39,7 +39,7 @@ class WorldConsole extends Page implements HasForms
         'repairitems bamuel',
         'send money Saurontwo "Grats" "Have fun with dual spec" 10540000',
         'server info',
-        'help ',
+        'lookup item 49',
         'character level smella 20',
         'lookup tele scarlet',
         'tele name bamuel Stormwind',

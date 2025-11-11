@@ -142,7 +142,7 @@ class NewRequest extends Page implements HasForms
                 ->visible(fn (Get $get) => $get('category') === 'money')
                 ->schema([
                     Grid::make(6)->schema([
-                        TextInput::make('gold')->numeric()->minValue(0)->default(0)->columnSpan(2),
+                        TextInput::make('gold')->numeric()->minValue(0)->maxValue(99999)->default(0)->columnSpan(2),
                         TextInput::make('silver')->numeric()->minValue(0)->maxValue(99)->default(0)->columnSpan(2),
                         TextInput::make('copper')->numeric()->minValue(0)->maxValue(99)->default(0)->columnSpan(2),
                     ]),
@@ -265,7 +265,7 @@ class NewRequest extends Page implements HasForms
                 if ($copper <= 0) {
                     throw ValidationException::withMessages(['money' => 'Enter a positive amount.']);
                 }
-                if ($copper > 500 * 10000) { // cap example: 500g
+                if ($copper > 999999 * 10000) { // cap example: 500g
                     throw ValidationException::withMessages(['money' => 'Max 500g per request.']);
                 }
             },
