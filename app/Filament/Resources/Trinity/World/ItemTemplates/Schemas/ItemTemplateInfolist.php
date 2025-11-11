@@ -35,11 +35,11 @@ class ItemTemplateInfolist
                                     TextEntry::make('summary_quality')
                                         ->label('Quality')
                                         ->badge()
-                                        ->state(fn ($record) => match ((int) $record->quality) {
+                                        ->state(fn ($record) => match ((int) $record->Quality) {
                                             0=>'Poor',1=>'Common',2=>'Uncommon',3=>'Rare',4=>'Epic',
-                                            5=>'Legendary',6=>'Artifact',7=>'Heirloom', default => (string) $record->quality
+                                            5=>'Legendary',6=>'Artifact',7=>'Heirloom', default => (string) $record->Quality
                                         })
-                                        ->color(fn ($record) => self::qualityColor((int) $record->quality)),
+                                        ->color(fn ($record) => self::qualityColor((int) $record->Quality)),
 
                                     TextEntry::make('summary_levels')
                                         ->label('Levels')
@@ -69,10 +69,10 @@ class ItemTemplateInfolist
                                 ->schema([
                                     TextEntry::make('entry')->label('Entry')->copyable(),
                                     TextEntry::make('name')->label('Name')->weight('semibold')->columnSpan(2),
-                                    TextEntry::make('quality')
+                                    TextEntry::make('Quality')
                                         ->label('Quality')
                                         ->badge()
-                                        ->color(fn ($record) => self::qualityColor((int) $record->quality)),
+                                        ->color(fn ($record) => self::qualityColor((int) $record->Quality)),
                                     Grid::make(3)->schema([
                                         TextEntry::make('class')
                                             ->label('Class')

@@ -11,6 +11,8 @@ use Filament\Forms\Components\Toggle;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Support\Icons\Heroicon;
 
 class TeleportAdmin extends Page implements HasForms
@@ -30,7 +32,7 @@ class TeleportAdmin extends Page implements HasForms
     public ?int   $teleId           = null; // GameTele id (or string if your PK is name)
     public string $manualTele       = '';   // fallback manual name
     public int    $delayMs          = 250;
-    public bool   $dryRun           = true;
+    public bool   $dryRun           = false;
 
     // live log
     public array $log = [];
@@ -45,18 +47,26 @@ class TeleportAdmin extends Page implements HasForms
     {
         return [
             Grid::make(1)->schema([
-                TextInput::make('delayMs')->label('Delay (ms)')
-                    ->numeric()->minValue(0)->default(250)
+                TextInput::make('delayMs')
+                    ->label('Delay (ms)')
+                    ->numeric()
+                    ->minValue(0)
+                    ->default(250)
                     ->helperText('Pause between calls to avoid flooding.')
-                    ->columnSpan(4),
+                    ->columnSpan(4)
+                    ->visible(fn () => auth()->user()?->hasRole('admin')),
 
-                Toggle::make('dryRun')->label('Dry run')->default(true)->columnSpan(2),
+                Toggle::make('dryRun')
+                    ->label('Dry run')
+                    ->columnSpan(2)
+                    ->visible(fn () => auth()->user()?->hasRole('admin')),
 
                 // CHARACTERS — async search (by name)
                 Select::make('characterGuids')
                     ->label('Characters')
                     ->multiple()
                     ->searchable()
+                    ->searchDebounce(250)
                     ->native(false)
                     ->getSearchResultsUsing(function (string $search) {
                         if ($search === '') return [];
@@ -82,7 +92,16 @@ class TeleportAdmin extends Page implements HasForms
                 Select::make('teleId')
                     ->label('Teleport (lookup)')
                     ->searchable()
+                    ->searchDebounce(250)
                     ->native(false)
+                    ->reactive() // watch for changes
+                    ->afterStateUpdated(function (Set $set, $state) {
+                        if ($state) {
+                            // user chose a lookup — clear manual
+                            $set('manualTele', '');
+                        }
+                    })
+                    ->disabled(fn (Get $get) => filled($get('manualTele')))
                     ->getSearchResultsUsing(function (string $search) {
                         if ($search === '') return [];
                         return GameTele::query()
@@ -93,7 +112,7 @@ class TeleportAdmin extends Page implements HasForms
                             ->get()
                             ->mapWithKeys(function ($t) {
                                 $meta = "map {$t->map} @ {$t->position_x},{$t->position_y},{$t->position_z}";
-                                return [$t->id => "{$t->name} ({$meta})"];
+                                return [$t->id => "{$t->name}"];
                             })
                             ->all();
                     })
@@ -101,12 +120,20 @@ class TeleportAdmin extends Page implements HasForms
                         $t = GameTele::find($value);
                         return $t ? "{$t->name} (map {$t->map})" : null;
                     })
-                ->columnSpan(4),
+                ->columnSpan(2),
 
                 TextInput::make('manualTele')
                     ->label('Or manual teleport name')
+                    ->reactive()
+                    ->afterStateUpdated(function (Set $set, $state) {
+                        if (filled($state)) {
+                            // user typed manual — clear lookup
+                            $set('teleId', null);
+                        }
+                    })
+                    ->disabled(fn (Get $get) => filled($get('teleId')))
                     ->placeholder('e.g. Stormwind')
-                    ->columnSpan(4),
+                    ->columnSpan(2),
             ]),
         ];
     }

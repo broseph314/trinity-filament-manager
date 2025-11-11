@@ -60,7 +60,7 @@ class WorldConsole extends Page implements HasForms
         'send money Fannychmela "FEETPICS" "PLEASEPLEASEPLEASEPLEASE" 500000',
         'send money tranquilos "FEETPICS" "PLEASEPLEASEPLEASEPLEASE" 500000',
         'send money Halfarf "FEETPICS" "PLEASEPLEASEPLEASEPLEASE" 500000',
-        'send items smella "FEETPICS" "PLEASEPLEASEPLEASEPLEASE" 2589:11',
+        'send items tranquilos "FEETPICS" "PLEASEPLEASEPLEASEPLEASE" 10509:2',
         'help account delete',
 //        'account delete jackizen',
 //        'tele name Gayestmajor Stormwind',
