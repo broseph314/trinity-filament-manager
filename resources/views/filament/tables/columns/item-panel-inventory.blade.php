@@ -1,15 +1,15 @@
 @php
     /** @var \App\Models\Trinity\World\ItemTemplate $record */
+    $record=$getState();
     $qualityColor = $record->qualityColor();
 @endphp
 
 <div {{ $getExtraAttributeBag() }} class="p-2">
-    {{ $getState() }}
 
     <div class="flex items-center gap-3">
         {{-- Icon slot --}}
         <div class="w-10 h-10 rounded-md bg-gray-800/60 border border-white/10 flex items-center justify-center overflow-hidden">
-                <span class="text-[10px] text-gray-400">icon</span>
+            <span class="text-[10px] text-gray-400">icon</span>
         </div>
 
         <div class="min-w-0">
@@ -45,7 +45,7 @@
 
             {{-- Meta row: iLvl, Req, Class/Subclass, Inv type --}}
             <div class="mt-0.5 text-xs text-gray-400 flex flex-wrap gap-x-3">
-{{--                <span>iLvl {{ (int) $record->ItemLevel }}</span>--}}
+                {{--                <span>iLvl {{ (int) $record->ItemLevel }}</span>--}}
                 @if ((int) $record->RequiredLevel > 0)
                     <span>Req {{ (int) $record->RequiredLevel }}</span>
                 @endif

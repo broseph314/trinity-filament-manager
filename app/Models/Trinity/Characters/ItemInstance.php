@@ -13,6 +13,13 @@ class ItemInstance extends Model
     public $incrementing = false;
     protected $guarded = ['*']; // read-only
 
+    public function template()
+    {
+        // item_instance.itemEntry -> world.item_template.entry
+        return $this->belongsTo(\App\Models\Trinity\World\ItemTemplate::class,
+            'itemEntry', 'entry');
+    }
+
     protected static function booted(): void
     {
         // protect core tables (optional)

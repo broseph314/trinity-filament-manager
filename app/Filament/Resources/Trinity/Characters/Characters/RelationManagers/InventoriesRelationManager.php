@@ -6,6 +6,7 @@ use App\Filament\Resources\Trinity\World\ItemTemplates\ItemTemplateResource;
 use App\Models\Trinity\World\ItemTemplate;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
+use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -19,11 +20,9 @@ class InventoriesRelationManager extends RelationManager
     {
         return $table
             ->modifyQueryUsing(function (Builder $query) {
-                // return is optional; both mutate and return work
-                return $query->with('itemInstance');
+                return $query->with('itemInstance.template');
             })
             ->columns([
-                // Use the actual DB fields for sorting; format via accessors
                 Tables\Columns\TextColumn::make('bag')
                     ->label('Bag')
                     ->badge()
@@ -37,41 +36,15 @@ class InventoriesRelationManager extends RelationManager
                     ->color('gray')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('item_name')
+                // Fancy item panel
+                ViewColumn::make('item_panel')
                     ->label('Item')
-                    ->wrap()
-                    ->searchable(
-                    // customize both the per-column and global search behaviour
-                        query: function (Builder $query, string $search): Builder {
-                            // If user typed a number, also match by entry directly:
-                            $entryIds = collect();
-                            if (is_numeric($search)) {
-                                $entryIds->push((int) $search);
-                            }
+                    ->state(fn ($record) => $record->itemInstance?->template) // <- pass ItemTemplate instance
+                    ->view('filament.tables.columns.item-panel-inventory',
+                    ['record' => fn ($record) => $record->itemInstance?->template,])      // your existing card
+                    ->sortable(false)                                         // sorting handled by text column (below)
+                    ->searchable(false),
 
-                            // Look up entries by name in the world DB (separate query, so no cross-DB join)
-                            $byName = ItemTemplate::query()
-                                ->where('name', 'like', '%' . $search . '%')
-                                ->limit(500) // cap for sanity; raise if you need
-                                ->pluck('entry');
-
-                            $entryIds = $entryIds->merge($byName)->unique()->values();
-
-                            // If nothing matched, return a 'false' condition to avoid loading everything
-                            if ($entryIds->isEmpty()) {
-                                return $query->whereRaw('0 = 1');
-                            }
-
-                            // Constrain by item_instance.itemEntry
-                            return $query->whereHas('itemInstance', function (Builder $iq) use ($entryIds) {
-                                $iq->whereIn('itemEntry', $entryIds);
-                            });
-                        },
-                        isIndividual: true,   // allow the column’s own search input (if enabled)
-                        isGlobal: true        // include it in the table’s global search box
-                    )
-                    ->url(fn ($record) => ItemTemplateResource::getUrl('view', ['record' => $record->item_entry]))
-                    ->openUrlInNewTab(),
 
                 Tables\Columns\TextColumn::make('item_entry')
                     ->label('Entry')
@@ -93,7 +66,7 @@ class InventoriesRelationManager extends RelationManager
                 // Tables\Columns\TextColumn::make('required_level')->label('Req Lvl')->sortable(),
             ])
             ->defaultSort('bag')
-            ->paginated([25, 50, 100])
+            ->paginated([5,10,25, 50, 100])
             ->searchPlaceholder('Search item name or entry…')
             ->filters([
                 Tables\Filters\SelectFilter::make('bag')
@@ -101,8 +74,6 @@ class InventoriesRelationManager extends RelationManager
                     ->options([0 => 'Backpack', 1 => 'Bag 1', 2 => 'Bag 2', 3 => 'Bag 3', 4 => 'Bag 4'])
                     ->searchable(),
             ])
-            ->headerActions([]) // read-only
-            ->actions([])       // no row actions
-            ->bulkActions([]);
+            ->headerActions([]);
     }
 }
