@@ -77,9 +77,41 @@ class ItemTemplate extends Model
         return self::INVENTORY_TYPE_LABELS[(int) $this->InventoryType] ?? (string) $this->InventoryType;
     }
 
-    public function iconUrl(string $size = 'medium'): ?string
+    public function displayInfo()
     {
-        $size = in_array($size, ['small','medium','large'], true) ? $size : 'medium';
-        return "https://wow.zamimg.com/images/wow/icons/{$size}/{$icon}.jpg";
+        // item_template.displayid -> item_display_info.ID
+        return $this->hasOne(ItemDisplayInfo::class, 'ID', 'displayid');
+    }
+
+    /**
+     * Returns the icon basename (e.g., "inv_chest_samurai") or null.
+     */
+    public function inventoryIcon(): ?string
+    {
+        $icon1 = $this->displayInfo?->InventoryIcon_1 ?? null;
+        $icon2 = $this->displayInfo?->InventoryIcon_2 ?? null;
+        $raw   = $icon1 ?: $icon2;
+        if (!$raw) return null;
+
+        // Normalize: drop any directory + extension, make lowercase
+        $name = strtolower($raw);
+        $name = preg_replace('~^.*[/\\\\]~', '', $name);   // remove any path like Interface/Icons/
+        $name = preg_replace('~\.(blp|png|jpg)$~i', '', $name); // remove extension if present
+        return $name ?: null;
+    }
+
+    /**
+     * Build an icon URL. Sizes: small|medium|large. CDN: evowow|zamimg
+     */
+    public function iconUrl(string $size = 'large', string $cdn = 'evowow'): ?string
+    {
+        $size = in_array($size, ['small','medium','large'], true) ? $size : 'large';
+        $icon = $this->inventoryIcon();
+        if (!$icon) return null;
+
+        return match ($cdn) {
+            'evowow' => "https://wotlk.evowow.com/static/images/wow/icons/{$size}/{$icon}.jpg",
+            default  => "https://wow.zamimg.com/images/wow/icons/{$size}/{$icon}.jpg",
+        };
     }
 }

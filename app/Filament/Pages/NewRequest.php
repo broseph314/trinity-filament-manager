@@ -10,6 +10,7 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ViewField;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
@@ -123,13 +124,12 @@ class NewRequest extends Page implements HasForms
                                         ->orderBy('quality', 'desc')
                                         ->orderBy('name')
                                         ->limit(50)->get()
-                                        ->mapWithKeys(fn ($i) => [$i->entry => "{$i->name} [#{$i->entry}]"])
+                                        ->mapWithKeys(fn ($i) => [$i->entry => "<span>{$i->name}</span> <span class='text-gray-500'>[#{$i->entry}]</span>"])
                                         ->all();
                                 })
-                                ->getOptionLabelUsing(function ($value): ?string {
-                                    $i = ItemTemplate::find($value);
-                                    return $i ? "{$i->name} [#{$i->entry}]" : null;
-                                }),
+                                ->allowHtml()
+                                ->reactive(),
+
                             TextInput::make('qty')
                                 ->label('Qty')
                                 ->numeric()->minValue(1)->maxValue(100)->default(1)->required()

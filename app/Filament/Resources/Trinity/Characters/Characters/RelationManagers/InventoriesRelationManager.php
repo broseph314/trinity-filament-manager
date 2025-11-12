@@ -40,8 +40,7 @@ class InventoriesRelationManager extends RelationManager
                 ViewColumn::make('item_panel')
                     ->label('Item')
                     ->state(fn ($record) => $record->itemInstance?->template) // <- pass ItemTemplate instance
-                    ->view('filament.tables.columns.item-panel-inventory',
-                    ['record' => fn ($record) => $record->itemInstance?->template,])      // your existing card
+                    ->view('filament.tables.columns.item-panel-inventory')      // your existing card
                     ->sortable(false)                                         // sorting handled by text column (below)
                     ->searchable(false),
 

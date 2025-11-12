@@ -2,6 +2,7 @@
     /** @var \App\Models\Trinity\World\ItemTemplate $record */
     $record=$getState();
     $qualityColor = $record->qualityColor();
+    $icon = $record->iconUrl('large','evowow');
 @endphp
 
 <div {{ $getExtraAttributeBag() }} class="p-2">
@@ -9,7 +10,11 @@
     <div class="flex items-center gap-3">
         {{-- Icon slot --}}
         <div class="w-10 h-10 rounded-md bg-gray-800/60 border border-white/10 flex items-center justify-center overflow-hidden">
-            <span class="text-[10px] text-gray-400">icon</span>
+            @if ($icon)
+                <img src="{{ $icon }}" alt="" class="w-10 h-10 rounded-md">
+            @else
+                <span class="text-[10px] text-gray-400">icon</span>
+            @endif
         </div>
 
         <div class="min-w-0">
