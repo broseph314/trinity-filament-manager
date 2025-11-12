@@ -1,5 +1,6 @@
 @php
     /** @var \App\Models\RequestLine $record */
+    use App\Models\Trinity\World\ItemTemplate;use Filament\Facades\Filament;
     $action = $record->action;
     $p = (array) $record->params;
 
@@ -42,21 +43,41 @@
 
         @elseif ($action === 'send_item')
             @php
+                // dear reader pls dont judge
+                //These are absolute war crimes (N+1, added libraries, etc. etc.)
+                //but the intention is to only ever use these sparingly in a single page
+                // and more importantly, it looks cool so sue me
+
                 $entry = (int) ($p['entry'] ?? 0);
+                $template = ItemTemplate::query()->find($entry);
                 $qty   = (int) ($p['qty'] ?? 1);
                 $label = $p['label'] ?? ($entry ? "Item #{$entry}" : 'Item');
+                    $url = $template
+                        ? Filament::getResourceUrl(ItemTemplate::class, 'view', ['record' => $template])
+                        : '#';
             @endphp
 
-            <div class="flex items-center gap-2 rounded-xl border border-white/10 bg-gray-900/60 px-3 py-1.5">
-                <div class="flex flex-col">
-                    <span class="text-sm text-gray-100">{{ $label }}</span>
-                    <span class="text-xs text-gray-400">Entry #{{ $entry }}</span>
-                </div>
-                <span class="ml-2 px-2 py-0.5 rounded-md text-xs bg-gray-800/80 text-gray-200 border border-white/10">
-                × {{ $qty }}
+            <a
+                class="flex items-center gap-2 rounded-xl border border-white/10 bg-gray-900/60 px-2 py-2 m-2
+           hover:bg-gray-800/70 hover:border-white/20 transition-all duration-150 ease-in-out"
+                href="{{$url}}"
+            >
+                @if ($template)
+                    @include('filament.tables.columns.item-template-card', [
+                        'record' => $template,
+                    ])
+                @else
+                    <div class="flex items-center">
+                        <div class="flex flex-col">
+                            <span class="text-sm text-gray-100">{{ $label }}</span>
+                            <span class="text-xs text-gray-400">Entry #{{ $entry }}</span>
+                        </div>
+                    </div>
+                @endif
+            </a>
+            <span class="ml-2 px-2 py-0.5 rounded-md text-xs bg-gray-800/80 text-gray-200 border border-white/10">
+                    × {{ $qty }}
             </span>
-            </div>
-
         @else
             {{-- Fallback: compact JSON --}}
             <code class="text-xs text-gray-300 bg-gray-900/50 px-2 py-1 rounded">
